@@ -42,6 +42,16 @@ Run a basic API smoke test:
 npm run smoke
 ```
 
+Manage Strava webhook subscriptions:
+
+```bash
+npm run strava:subscriptions -- list
+npm run strava:subscriptions -- create
+npm run strava:subscriptions -- delete {subscriptionId}
+```
+
+Strava integration notes are documented in `docs/strava-integration.md`.
+
 Available endpoints:
 
 - `GET /health`

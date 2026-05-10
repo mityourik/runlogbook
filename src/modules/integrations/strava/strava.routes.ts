@@ -9,6 +9,7 @@ import { importStravaActivity } from './import-strava-activity.js';
 import { createStravaOAuthState, parseStravaOAuthState } from './strava-oauth-state.js';
 import { StravaRepository } from './strava.repository.js';
 import {
+  stravaCallbackErrorQuerySchema,
   stravaCallbackQuerySchema,
   stravaWebhookEventSchema,
   stravaWebhookVerificationQuerySchema
@@ -37,13 +38,19 @@ export function registerStravaRoutes(app: FastifyInstance): void {
     authorizationUrl.searchParams.set('redirect_uri', callbackUrl.toString());
     authorizationUrl.searchParams.set('response_type', 'code');
     authorizationUrl.searchParams.set('approval_prompt', 'auto');
-    authorizationUrl.searchParams.set('scope', 'read,activity:read_all');
+    authorizationUrl.searchParams.set('scope', 'read,activity:read,activity:read_all');
     authorizationUrl.searchParams.set('state', createStravaOAuthState(user.id, env.APP_SECRET));
 
     return reply.redirect(authorizationUrl.toString());
   });
 
   app.get('/integrations/strava/callback', async (request) => {
+    const errorQuery = stravaCallbackErrorQuerySchema.safeParse(request.query);
+
+    if (errorQuery.success) {
+      throw app.httpErrors.badRequest(`Strava OAuth failed: ${errorQuery.data.error}`);
+    }
+
     const query = stravaCallbackQuerySchema.parse(request.query);
     const state = parseStravaOAuthState(query.state, env.APP_SECRET);
 
@@ -66,7 +73,8 @@ export function registerStravaRoutes(app: FastifyInstance): void {
       stravaAthleteId: tokenResponse.athlete.id,
       accessTokenEncrypted: encryptSecret(tokenResponse.access_token, env.APP_SECRET),
       refreshTokenEncrypted: encryptSecret(tokenResponse.refresh_token, env.APP_SECRET),
-      tokenExpiresAt: new Date(tokenResponse.expires_at * 1000)
+      tokenExpiresAt: new Date(tokenResponse.expires_at * 1000),
+      grantedScope: tokenResponse.scope ?? query.scope ?? ''
     });
 
     return { connection };

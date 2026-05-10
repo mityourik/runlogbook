@@ -6,6 +6,11 @@ export const stravaCallbackQuerySchema = z.object({
   scope: z.string().optional()
 });
 
+export const stravaCallbackErrorQuerySchema = z.object({
+  error: z.string().min(1),
+  state: z.string().optional()
+});
+
 export const stravaWebhookVerificationQuerySchema = z.object({
   'hub.mode': z.string(),
   'hub.challenge': z.string(),

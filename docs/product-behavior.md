@@ -50,6 +50,8 @@ After import, the user should add the subjective and planning context that Strav
 
 If the run matches a planned workout, clarification can link the finalized run to that planned workout and mark it as completed or changed.
 
+Some Strava activities can arrive with zero distance, for example generic `Workout` activities. Draft runs may keep that imported value, but finalized runs require the user to provide a positive distance and duration during clarification.
+
 ## Training Plan Behavior
 
 Users should be able to enter a training plan manually or paste a plan they received elsewhere.

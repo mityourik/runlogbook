@@ -20,6 +20,9 @@ export class NotificationRepository {
     const result = await this.pool.query<NotificationRow>(
       `insert into notifications (id, user_id, type, title, body, action_url)
       values ($1, $2, $3, $4, $5, $6)
+      on conflict (user_id, type, action_url) do update set
+        title = excluded.title,
+        body = excluded.body
       returning *`,
       [randomUUID(), input.userId, input.type, input.title, input.body, input.actionUrl ?? null]
     );

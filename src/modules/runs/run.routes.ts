@@ -69,12 +69,23 @@ export function registerRunRoutes(app: FastifyInstance): void {
       }
     }
 
-    const occurredOn = draftRun.occurredAt.slice(0, 10);
+    const occurredOn = input.occurredOn ?? draftRun.occurredAt.slice(0, 10);
+    const distanceMeters = input.distanceMeters ?? draftRun.distanceMeters;
+    const durationSeconds = input.durationSeconds ?? draftRun.movingTimeSeconds;
+
+    if (distanceMeters <= 0) {
+      throw app.httpErrors.badRequest('Distance is required for a finalized run');
+    }
+
+    if (durationSeconds <= 0) {
+      throw app.httpErrors.badRequest('Duration is required for a finalized run');
+    }
+
     const run = await repository.create({
       userId: request.user!.id,
       occurredOn,
-      distanceMeters: draftRun.distanceMeters,
-      durationSeconds: draftRun.movingTimeSeconds,
+      distanceMeters,
+      durationSeconds,
       perceivedEffort: input.perceivedEffort,
       title: input.title ?? draftRun.title ?? undefined,
       notes: input.notes

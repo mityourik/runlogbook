@@ -52,7 +52,8 @@ create table notifications (
   body text not null,
   action_url text,
   read_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique(user_id, type, action_url)
 );
 
 create index notifications_user_created_at_idx on notifications(user_id, created_at desc);
@@ -62,7 +63,7 @@ create table runs (
   id uuid primary key,
   user_id uuid not null references users(id) on delete cascade,
   occurred_on date not null,
-  distance_meters integer not null check (distance_meters > 0),
+  distance_meters integer not null check (distance_meters >= 0),
   duration_seconds integer not null check (duration_seconds > 0),
   perceived_effort integer check (perceived_effort between 1 and 10),
   title text,

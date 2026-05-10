@@ -7,6 +7,7 @@ export type StravaConnectionInput = {
   accessTokenEncrypted: string;
   refreshTokenEncrypted: string;
   tokenExpiresAt: Date;
+  grantedScope: string;
 };
 
 export type StravaConnection = {
@@ -25,6 +26,7 @@ type StravaConnectionRow = {
   access_token_encrypted?: string;
   refresh_token_encrypted?: string;
   token_expires_at?: Date;
+  granted_scope?: string;
 };
 
 export class StravaRepository {
@@ -38,13 +40,15 @@ export class StravaRepository {
         strava_athlete_id,
         access_token_encrypted,
         refresh_token_encrypted,
-        token_expires_at
-      ) values ($1, $2, $3, $4, $5, $6)
+        token_expires_at,
+        granted_scope
+      ) values ($1, $2, $3, $4, $5, $6, $7)
       on conflict (user_id) do update set
         strava_athlete_id = excluded.strava_athlete_id,
         access_token_encrypted = excluded.access_token_encrypted,
         refresh_token_encrypted = excluded.refresh_token_encrypted,
         token_expires_at = excluded.token_expires_at,
+        granted_scope = excluded.granted_scope,
         updated_at = now()
       returning id, user_id, strava_athlete_id`,
       [
@@ -53,7 +57,8 @@ export class StravaRepository {
         input.stravaAthleteId,
         input.accessTokenEncrypted,
         input.refreshTokenEncrypted,
-        input.tokenExpiresAt
+        input.tokenExpiresAt,
+        input.grantedScope
       ]
     );
 

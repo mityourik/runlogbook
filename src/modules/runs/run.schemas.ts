@@ -36,6 +36,9 @@ export const draftRunParamsSchema = z.object({
 });
 
 export const clarifyDraftRunSchema = z.object({
+  occurredOn: isoDateSchema.optional(),
+  distanceMeters: z.number().int().positive().optional(),
+  durationSeconds: z.number().int().positive().optional(),
   perceivedEffort: z.number().int().min(1).max(10),
   plannedWorkoutId: z.string().uuid().optional(),
   plannedWorkoutStatus: z.enum(['completed', 'changed']).default('completed'),
