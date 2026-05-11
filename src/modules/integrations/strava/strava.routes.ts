@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { authenticateRequest } from '../../identity/auth.js';
 import { NotificationRepository } from '../../notifications/notification.repository.js';
 import { DraftRunRepository } from '../../runs/draft-run.repository.js';
@@ -21,27 +21,15 @@ export function registerStravaRoutes(app: FastifyInstance): void {
   const notifications = new NotificationRepository(app.dependencies.pool);
 
   app.get('/integrations/strava/connect', async (request, reply) => {
-    const user = await authenticateRequest(request);
+    const authorizationUrl = await createAuthorizationUrl(app, request);
 
-    if (!user) {
-      throw app.httpErrors.unauthorized('Missing or invalid bearer token');
-    }
+    return reply.redirect(authorizationUrl);
+  });
 
-    if (!env.STRAVA_CLIENT_ID) {
-      throw app.httpErrors.internalServerError('STRAVA_CLIENT_ID is not configured');
-    }
+  app.get('/integrations/strava/connect-url', async (request) => {
+    const authorizationUrl = await createAuthorizationUrl(app, request);
 
-    const callbackUrl = new URL('/integrations/strava/callback', env.APP_BASE_URL);
-    const authorizationUrl = new URL('https://www.strava.com/oauth/authorize');
-
-    authorizationUrl.searchParams.set('client_id', env.STRAVA_CLIENT_ID);
-    authorizationUrl.searchParams.set('redirect_uri', callbackUrl.toString());
-    authorizationUrl.searchParams.set('response_type', 'code');
-    authorizationUrl.searchParams.set('approval_prompt', 'auto');
-    authorizationUrl.searchParams.set('scope', 'read,activity:read,activity:read_all');
-    authorizationUrl.searchParams.set('state', createStravaOAuthState(user.id, env.APP_SECRET));
-
-    return reply.redirect(authorizationUrl.toString());
+    return { authorizationUrl };
   });
 
   app.get('/integrations/strava/callback', async (request) => {
@@ -79,6 +67,30 @@ export function registerStravaRoutes(app: FastifyInstance): void {
 
     return { connection };
   });
+
+  async function createAuthorizationUrl(appInstance: FastifyInstance, request: FastifyRequest): Promise<string> {
+    const user = await authenticateRequest(request);
+
+    if (!user) {
+      throw appInstance.httpErrors.unauthorized('Missing or invalid bearer token');
+    }
+
+    if (!env.STRAVA_CLIENT_ID) {
+      throw appInstance.httpErrors.internalServerError('STRAVA_CLIENT_ID is not configured');
+    }
+
+    const callbackUrl = new URL('/integrations/strava/callback', env.APP_BASE_URL);
+    const authorizationUrl = new URL('https://www.strava.com/oauth/authorize');
+
+    authorizationUrl.searchParams.set('client_id', env.STRAVA_CLIENT_ID);
+    authorizationUrl.searchParams.set('redirect_uri', callbackUrl.toString());
+    authorizationUrl.searchParams.set('response_type', 'code');
+    authorizationUrl.searchParams.set('approval_prompt', 'auto');
+    authorizationUrl.searchParams.set('scope', 'read,activity:read,activity:read_all');
+    authorizationUrl.searchParams.set('state', createStravaOAuthState(user.id, env.APP_SECRET));
+
+    return authorizationUrl.toString();
+  }
 
   app.get('/integrations/strava/webhook', async (request) => {
     const query = stravaWebhookVerificationQuerySchema.parse(request.query);
