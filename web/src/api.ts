@@ -8,6 +8,20 @@ export type DraftRun = {
   movingTimeSeconds: number;
   elapsedTimeSeconds: number | null;
   title: string | null;
+  workoutLaps?: WorkoutLap[];
+};
+
+export type WorkoutLap = {
+  lapNumber: number;
+  lapKind: 'warmup' | 'work' | 'recovery' | 'cooldown' | 'other';
+  distanceMeters: number;
+  correctedDistanceMeters: number | null;
+  movingTimeSeconds: number;
+  elapsedTimeSeconds: number;
+  averageHeartrate: number | null;
+  maxHeartrate: number | null;
+  heartRateRecoveryBpm: number | null;
+  needsReview: boolean;
 };
 
 export type AuthResponse = {
@@ -17,6 +31,22 @@ export type AuthResponse = {
     email: string;
     displayName: string;
   };
+};
+
+export type DistanceSummary = {
+  startDate: string;
+  endDate: string;
+  runCount: number;
+  totalDistanceMeters: number;
+  totalDistanceKm: number;
+  runs: Array<{
+    id: string;
+    occurredOn: string;
+    title: string | null;
+    distanceMeters: number;
+    distanceKm: number;
+    durationSeconds: number;
+  }>;
 };
 
 export async function register(input: { email: string; password: string; displayName: string }): Promise<AuthResponse> {
@@ -41,6 +71,9 @@ export async function clarifyDraftRun(
     distanceMeters?: number;
     durationSeconds?: number;
     perceivedEffort: number;
+    workoutKind: 'easy' | 'workout' | 'long' | 'race' | 'other';
+    workoutStructure?: string;
+    workoutLapCorrections?: Array<{ lapNumber: number; correctedDistanceMeters: number }>;
     title?: string;
     notes?: string;
   }
@@ -52,6 +85,16 @@ export async function getStravaConnectUrl(token: string): Promise<string> {
   const response = await request<{ authorizationUrl: string }>('/integrations/strava/connect-url', { token });
 
   return response.authorizationUrl;
+}
+
+export async function getDistanceSummary(
+  token: string,
+  input: { startDate: string; endDate: string }
+): Promise<DistanceSummary> {
+  const params = new URLSearchParams(input);
+  const response = await request<{ summary: DistanceSummary }>(`/analytics/distance?${params.toString()}`, { token });
+
+  return response.summary;
 }
 
 async function request<T>(

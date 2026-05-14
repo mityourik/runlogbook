@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { authenticateRequest } from '../../identity/auth.js';
 import { NotificationRepository } from '../../notifications/notification.repository.js';
 import { DraftRunRepository } from '../../runs/draft-run.repository.js';
+import { WorkoutLapRepository } from '../../runs/workout-lap.repository.js';
 import { env } from '../../../shared/config/env.js';
 import { encryptSecret } from '../../../shared/crypto/encryption.js';
 import { exchangeStravaCode } from './strava.client.js';
@@ -18,6 +19,7 @@ import {
 export function registerStravaRoutes(app: FastifyInstance): void {
   const repository = new StravaRepository(app.dependencies.pool);
   const draftRuns = new DraftRunRepository(app.dependencies.pool);
+  const workoutLaps = new WorkoutLapRepository(app.dependencies.pool);
   const notifications = new NotificationRepository(app.dependencies.pool);
 
   app.get('/integrations/strava/connect', async (request, reply) => {
@@ -131,6 +133,7 @@ export function registerStravaRoutes(app: FastifyInstance): void {
           connection,
           repository,
           draftRuns,
+          workoutLaps,
           notifications,
           stravaActivityImportId: importId,
           stravaActivityId: event.object_id

@@ -20,6 +20,24 @@ export type PlanAdherence = {
   adherencePercent: number | null;
 };
 
+export type DistanceSummaryRun = {
+  id: string;
+  occurredOn: string;
+  title: string | null;
+  distanceMeters: number;
+  distanceKm: number;
+  durationSeconds: number;
+};
+
+export type DistanceSummary = {
+  startDate: string;
+  endDate: string;
+  runCount: number;
+  totalDistanceMeters: number;
+  totalDistanceKm: number;
+  runs: DistanceSummaryRun[];
+};
+
 type WeeklySummaryRow = {
   run_count: string;
   total_distance_meters: string | null;
@@ -33,6 +51,14 @@ type PlanAdherenceRow = {
   completed_count: string;
   changed_count: string;
   skipped_count: string;
+};
+
+type DistanceSummaryRunRow = {
+  id: string;
+  occurred_on: string;
+  title: string | null;
+  distance_meters: number;
+  duration_seconds: number;
 };
 
 export class AnalyticsRepository {
@@ -116,4 +142,36 @@ export class AnalyticsRepository {
       adherencePercent: plannedCount > 0 ? Math.round(((completedCount + changedCount) / plannedCount) * 100) : null
     };
   }
+
+  async getDistanceSummary(input: { userId: string; startDate: string; endDate: string }): Promise<DistanceSummary> {
+    const result = await this.pool.query<DistanceSummaryRunRow>(
+      `select id, occurred_on, title, distance_meters, duration_seconds
+      from runs
+      where user_id = $1 and occurred_on >= $2 and occurred_on <= $3
+      order by occurred_on desc, created_at desc`,
+      [input.userId, input.startDate, input.endDate]
+    );
+    const runs = result.rows.map((row) => ({
+      id: row.id,
+      occurredOn: row.occurred_on,
+      title: row.title,
+      distanceMeters: row.distance_meters,
+      distanceKm: roundKm(row.distance_meters),
+      durationSeconds: row.duration_seconds
+    }));
+    const totalDistanceMeters = runs.reduce((total, run) => total + run.distanceMeters, 0);
+
+    return {
+      startDate: input.startDate,
+      endDate: input.endDate,
+      runCount: runs.length,
+      totalDistanceMeters,
+      totalDistanceKm: roundKm(totalDistanceMeters),
+      runs
+    };
+  }
+}
+
+function roundKm(distanceMeters: number): number {
+  return Math.round((distanceMeters / 1000) * 100) / 100;
 }

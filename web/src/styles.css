@@ -41,6 +41,7 @@ button {
 
 .auth-card,
 .empty-card,
+.analytics-card,
 .question-card {
   width: min(100%, 820px);
   margin: 0 auto;
@@ -51,17 +52,114 @@ button {
 }
 
 .auth-card,
-.empty-card {
+.empty-card,
+.analytics-card {
   padding: 40px;
 }
 
 .auth-card h1,
 .topbar h1,
+.analytics-card h2,
 .empty-card h2,
 .question-shell h2 {
   margin: 0;
   letter-spacing: -0.055em;
   line-height: 0.95;
+}
+
+.analytics-card {
+  display: grid;
+  gap: 24px;
+  width: min(100%, 980px);
+  margin-bottom: 28px;
+}
+
+.analytics-card h2 {
+  font-size: clamp(2rem, 4vw, 3.6rem);
+}
+
+.query-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+}
+
+.analytics-result {
+  display: grid;
+  gap: 18px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.answer-card,
+.metric-card {
+  display: grid;
+  gap: 8px;
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(23, 32, 25, 0.08);
+}
+
+.answer-card {
+  background: #172019;
+  color: #fffaf0;
+}
+
+.answer-card span,
+.metric-card span {
+  color: #65705f;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.answer-card span {
+  color: rgba(255, 250, 240, 0.68);
+}
+
+.answer-card strong {
+  font-size: clamp(1.45rem, 4vw, 2.6rem);
+  line-height: 1.08;
+}
+
+.metric-card strong {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fffaf0;
+}
+
+th,
+td {
+  border-bottom: 1px solid rgba(23, 32, 25, 0.1);
+  padding: 14px 16px;
+  text-align: left;
+}
+
+th {
+  color: #65705f;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .auth-card h1 {
@@ -76,6 +174,13 @@ button {
   gap: 24px;
   width: min(100%, 980px);
   margin: 0 auto 28px;
+}
+
+.topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .topbar h1 {
@@ -267,6 +372,7 @@ textarea:focus {
 
   .auth-card,
   .empty-card,
+  .analytics-card,
   .question-card {
     border-radius: 28px;
     padding: 24px;
@@ -274,6 +380,15 @@ textarea:focus {
 
   .topbar {
     align-items: center;
+  }
+
+  .topbar-actions {
+    justify-content: flex-start;
+  }
+
+  .query-form,
+  .metric-grid {
+    grid-template-columns: 1fr;
   }
 
   .effort-grid {

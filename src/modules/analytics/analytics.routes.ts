@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { authenticateRequest } from '../identity/auth.js';
 import { AnalyticsRepository } from './analytics.repository.js';
-import { weeklySummaryQuerySchema } from './analytics.schemas.js';
+import { distanceSummaryQuerySchema, weeklySummaryQuerySchema } from './analytics.schemas.js';
 
 export function registerAnalyticsRoutes(app: FastifyInstance): void {
   const analytics = new AnalyticsRepository(app.dependencies.pool);
@@ -34,6 +34,17 @@ export function registerAnalyticsRoutes(app: FastifyInstance): void {
     const adherence = await analytics.getCurrentPlanAdherence(request.user!.id, today);
 
     return { adherence };
+  });
+
+  app.get('/analytics/distance', async (request) => {
+    const query = distanceSummaryQuerySchema.parse(request.query);
+    const summary = await analytics.getDistanceSummary({
+      userId: request.user!.id,
+      startDate: query.startDate,
+      endDate: query.endDate
+    });
+
+    return { summary };
   });
 }
 

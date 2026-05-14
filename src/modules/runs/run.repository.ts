@@ -9,6 +9,8 @@ type RunRow = {
   distance_meters: number;
   duration_seconds: number;
   perceived_effort: number | null;
+  workout_kind: string | null;
+  workout_structure: string | null;
   title: string | null;
   notes: string | null;
   created_at: Date;
@@ -27,9 +29,11 @@ export class RunRepository {
         distance_meters,
         duration_seconds,
         perceived_effort,
+        workout_kind,
+        workout_structure,
         title,
         notes
-      ) values ($1, $2, $3, $4, $5, $6, $7, $8)
+      ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       returning *`,
       [
         randomUUID(),
@@ -38,6 +42,8 @@ export class RunRepository {
         input.distanceMeters,
         input.durationSeconds,
         input.perceivedEffort ?? null,
+        input.workoutKind ?? null,
+        input.workoutStructure ?? null,
         input.title ?? null,
         input.notes ?? null
       ]
@@ -78,6 +84,8 @@ export class RunRepository {
       distanceMeters: 'distance_meters',
       durationSeconds: 'duration_seconds',
       perceivedEffort: 'perceived_effort',
+      workoutKind: 'workout_kind',
+      workoutStructure: 'workout_structure',
       title: 'title',
       notes: 'notes'
     };
@@ -113,6 +121,8 @@ function toRun(row: RunRow): Run {
     distanceMeters: row.distance_meters,
     durationSeconds: row.duration_seconds,
     perceivedEffort: row.perceived_effort,
+    workoutKind: row.workout_kind,
+    workoutStructure: row.workout_structure,
     title: row.title,
     notes: row.notes,
     createdAt: row.created_at.toISOString(),

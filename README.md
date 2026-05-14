@@ -18,10 +18,22 @@ Install dependencies:
 npm install
 ```
 
+Create a local `.env` file from `.env.example` and fill Strava values if you need Strava OAuth or webhooks:
+
+```bash
+cp .env.example .env
+```
+
 Start PostgreSQL:
 
 ```bash
 docker compose up -d
+```
+
+Apply migrations:
+
+```bash
+npm run db:migrate
 ```
 
 Run the API:
@@ -30,10 +42,76 @@ Run the API:
 npm run dev
 ```
 
-Apply migrations:
+Run the web app in another terminal:
 
 ```bash
-npm run db:migrate
+npm run web:dev
+```
+
+Open the app at `http://localhost:5173`.
+
+The API runs at `http://localhost:3000` by default.
+
+### Local Strava Webhooks
+
+Strava webhooks require a public HTTPS callback URL. For local development, keep the API running and start a public tunnel to `localhost:3000` in another terminal.
+
+One working option is `localhost.run`:
+
+```bash
+ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 80:localhost:3000 nokey@localhost.run
+```
+
+Copy the generated HTTPS URL, for example `https://example.lhr.life`, and set it in `.env`:
+
+```env
+APP_BASE_URL=https://example.lhr.life
+```
+
+Restart the API after changing `.env`.
+
+Then recreate the Strava webhook subscription:
+
+```bash
+npm run strava:subscriptions -- list
+npm run strava:subscriptions -- delete {subscriptionId}
+npm run strava:subscriptions -- create
+npm run strava:subscriptions -- list
+```
+
+Verify the public URL reaches the local API:
+
+```bash
+curl https://example.lhr.life/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+The tunnel URL is temporary. If the tunnel process stops, Strava can no longer deliver webhooks and you must create a new tunnel and recreate the subscription.
+
+### Stop Local Development
+
+Stop foreground processes with `Ctrl+C` in their terminals:
+
+- `npm run dev`
+- `npm run web:dev`
+- `ssh ... localhost.run`
+
+Stop PostgreSQL:
+
+```bash
+docker compose down
+```
+
+If you started a tunnel in the background, find and stop it:
+
+```bash
+pgrep -fl "localhost.run|cloudflared|ngrok|localtunnel"
+kill {processId}
 ```
 
 Run a basic API smoke test:
@@ -74,6 +152,7 @@ Available endpoints:
 - `PATCH /planned-workouts/{workoutId}`
 - `GET /analytics/weekly-summary`
 - `GET /analytics/plan-adherence`
+- `GET /analytics/distance`
 - `POST /runs`
 - `GET /runs`
 - `GET /runs/{runId}`

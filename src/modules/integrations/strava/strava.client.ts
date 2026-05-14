@@ -12,12 +12,28 @@ export type StravaTokenResponse = {
 export type StravaActivityResponse = {
   id: number;
   name: string;
+  description?: string | null;
   type: string;
   sport_type?: string;
+  workout_type?: number | null;
   start_date: string;
   distance: number;
   moving_time: number;
   elapsed_time: number;
+  laps?: StravaLapResponse[];
+};
+
+export type StravaLapResponse = {
+  name?: string;
+  distance: number;
+  moving_time: number;
+  elapsed_time: number;
+  average_speed?: number;
+  average_heartrate?: number;
+  max_heartrate?: number;
+  total_elevation_gain?: number;
+  split?: number;
+  start_date?: string;
 };
 
 export async function exchangeStravaCode(input: {
