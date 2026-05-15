@@ -70,7 +70,7 @@ export const analyticsIntentCatalog: AnalyticsIntentCatalogEntry[] = [
   {
     name: 'weekly_summary',
     description: 'Provides a weekly training summary anchored to a week start date when supplied.',
-    parameters: ['period', 'weekStart'],
+    parameters: ['weekStart'],
     examples: ['Сделай сводку за эту неделю', 'Покажи итоги недели с 2026-05-11']
   },
   {
@@ -88,7 +88,7 @@ export const analyticsIntentCatalog: AnalyticsIntentCatalogEntry[] = [
   {
     name: 'plan_adherence',
     description: 'Summarizes how well completed runs matched the training plan.',
-    parameters: ['period', 'startDate', 'endDate'],
+    parameters: ['period'],
     examples: ['Как я выполняю план на этой неделе?', 'Покажи соблюдение плана за месяц']
   },
   {

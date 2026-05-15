@@ -33,6 +33,14 @@ describe('analytics intents', () => {
     }
   });
 
+  it('keeps catalog parameters aligned with approved intent-specific schemas', () => {
+    const weeklySummary = analyticsIntentCatalog.find((entry) => entry.name === 'weekly_summary');
+    const planAdherence = analyticsIntentCatalog.find((entry) => entry.name === 'plan_adherence');
+
+    assert.deepEqual(weeklySummary?.parameters, ['weekStart']);
+    assert.deepEqual(planAdherence?.parameters, ['period']);
+  });
+
   it('rejects unknown classified intent names', () => {
     assert.throws(
       () => classifiedAnalyticsIntentSchema.parse({ name: 'raw_sql', parameters: {}, confidence: 1 }),
