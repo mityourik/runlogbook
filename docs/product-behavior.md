@@ -85,7 +85,7 @@ Implemented first analytics:
 - Weekly run count, distance, duration, longest run, average pace, and average effort.
 - Current plan adherence based on planned workouts marked completed or changed.
 
-Natural-language analytics questions are routed through a hybrid intent classifier. The backend first applies deterministic rules for common Russian questions, then falls back to an allowlisted LLM classifier. The LLM never generates SQL; it only selects known analytics intents and parameters. If the question is ambiguous, the product returns 2-3 clarification options.
+Natural-language analytics questions are routed through a hybrid intent classifier. The backend first applies deterministic rules for common Russian questions, then falls back to an allowlisted LLM classifier when configured; otherwise ambiguous questions return clarification options. The LLM never generates SQL; it only selects known analytics intents and parameters. If the question is ambiguous, the product returns 2-3 clarification options.
 
 ## Authentication Requirement
 
