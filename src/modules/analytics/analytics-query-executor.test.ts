@@ -70,6 +70,19 @@ describe('AnalyticsQueryExecutor', () => {
     assert.deepEqual(receivedInput, { userId: 'user-1', weekStart: '2026-05-11', weekEnd: '2026-05-17' });
   });
 
+  it('rejects invalid weekly summary weekStart without a RangeError', async () => {
+    const executor = new AnalyticsQueryExecutor({});
+
+    await assert.rejects(
+      () =>
+        executor.execute({
+          userId: 'user-1',
+          intents: [{ name: 'weekly_summary', parameters: { weekStart: '2026-02-31' }, confidence: 1 }]
+        }),
+      /Expected real date in YYYY-MM-DD format/
+    );
+  });
+
   it('uses injected today for plan adherence when endDate is absent', async () => {
     const dates: string[] = [];
     const executor = new AnalyticsQueryExecutor(

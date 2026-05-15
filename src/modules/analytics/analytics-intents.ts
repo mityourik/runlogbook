@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { analyticsPeriods } from './analytics-periods.js';
+import { analyticsPeriods, isValidAnalyticsDate } from './analytics-periods.js';
 
 export const analyticsIntentNames = [
   'distance_summary',
@@ -29,7 +29,10 @@ export type AnalyticsIntentCatalogEntry = {
   examples: string[];
 };
 
-const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const isoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine(isValidAnalyticsDate, 'Expected real date in YYYY-MM-DD format');
 
 export const analyticsIntentParametersSchema = z
   .object({

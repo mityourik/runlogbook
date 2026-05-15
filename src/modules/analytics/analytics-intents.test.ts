@@ -63,4 +63,26 @@ describe('analytics intents', () => {
       })
     );
   });
+
+  it('rejects invalid calendar dates in classified intent parameters', () => {
+    assert.throws(
+      () =>
+        classifiedAnalyticsIntentSchema.parse({
+          name: 'distance_summary',
+          parameters: { startDate: '2026-02-31', endDate: '2026-03-01' },
+          confidence: 1
+        }),
+      /Expected real date in YYYY-MM-DD format/
+    );
+
+    assert.throws(
+      () =>
+        classifiedAnalyticsIntentSchema.parse({
+          name: 'weekly_summary',
+          parameters: { weekStart: '2026-02-31' },
+          confidence: 1
+        }),
+      /Expected real date in YYYY-MM-DD format/
+    );
+  });
 });

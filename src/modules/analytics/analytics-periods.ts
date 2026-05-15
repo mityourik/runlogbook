@@ -24,6 +24,23 @@ export type ResolvedAnalyticsPeriod = {
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isValidAnalyticsDate(value: string): boolean {
+  if (!ISO_DATE_PATTERN.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+export function assertValidAnalyticsDate(value: string): void {
+  if (!isValidAnalyticsDate(value)) {
+    throw new Error('Expected real date in YYYY-MM-DD format');
+  }
+}
 
 export function resolveAnalyticsPeriod(
   input: AnalyticsPeriodInput,
@@ -33,6 +50,9 @@ export function resolveAnalyticsPeriod(
     if (input.startDate === undefined || input.endDate === undefined) {
       throw new Error('startDate and endDate are both required');
     }
+
+    assertValidAnalyticsDate(input.startDate);
+    assertValidAnalyticsDate(input.endDate);
 
     if (input.startDate > input.endDate) {
       throw new Error('startDate must be before or equal to endDate');

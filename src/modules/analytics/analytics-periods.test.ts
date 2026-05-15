@@ -34,4 +34,11 @@ describe('resolveAnalyticsPeriod', () => {
       /startDate must be before or equal to endDate/
     );
   });
+
+  it('rejects invalid explicit calendar dates', () => {
+    assert.throws(
+      () => resolveAnalyticsPeriod({ startDate: '2026-02-31', endDate: '2026-03-01' }, today),
+      /Expected real date in YYYY-MM-DD format/
+    );
+  });
 });

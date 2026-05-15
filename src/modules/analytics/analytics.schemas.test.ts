@@ -34,4 +34,34 @@ describe('analyticsQueryRequestSchema', () => {
       /startDate must be before or equal to endDate/
     );
   });
+
+  it('rejects selected options with invalid calendar dates', () => {
+    assert.throws(
+      () =>
+        analyticsQueryRequestSchema.parse({
+          question: 'сколько я пробежал',
+          selectedOption: {
+            intents: [
+              {
+                name: 'distance_summary',
+                parameters: { startDate: '2026-02-31', endDate: '2026-03-01' },
+                confidence: 1
+              }
+            ]
+          }
+        }),
+      /Expected real date in YYYY-MM-DD format/
+    );
+
+    assert.throws(
+      () =>
+        analyticsQueryRequestSchema.parse({
+          question: 'итоги недели',
+          selectedOption: {
+            intents: [{ name: 'weekly_summary', parameters: { weekStart: '2026-02-31' }, confidence: 1 }]
+          }
+        }),
+      /Expected real date in YYYY-MM-DD format/
+    );
+  });
 });

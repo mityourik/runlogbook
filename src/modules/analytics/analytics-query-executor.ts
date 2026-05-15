@@ -1,4 +1,5 @@
 import type { ClassifiedAnalyticsIntent } from './analytics-intents.js';
+import { assertValidAnalyticsDate } from './analytics-periods.js';
 import type { AnalyticsRepository } from './analytics.repository.js';
 
 export type AnalyticsQueryResult = {
@@ -28,6 +29,9 @@ export class AnalyticsQueryExecutor {
         if (!weekStart || !weekEnd) {
           throw new Error('Intent weekly_summary requires weekStart');
         }
+
+        assertValidAnalyticsDate(weekStart);
+        assertValidAnalyticsDate(weekEnd);
 
         results.push({
           intent: intent.name,
