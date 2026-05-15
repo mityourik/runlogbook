@@ -49,6 +49,25 @@ export type DistanceSummary = {
   }>;
 };
 
+export type AnalyticsIntentPayload = {
+  name: string;
+  parameters: Record<string, unknown>;
+  confidence?: number;
+};
+
+export type AnalyticsQueryResponse =
+  | {
+      status: 'answered';
+      question: string;
+      resolved: { source: 'rules' | 'llm' | 'user_selection'; intents: AnalyticsIntentPayload[] };
+      results: Array<{ intent: string; data: unknown }>;
+    }
+  | {
+      status: 'needs_clarification';
+      question: string;
+      options: Array<{ label: string; intents: AnalyticsIntentPayload[] }>;
+    };
+
 export async function register(input: { email: string; password: string; displayName: string }): Promise<AuthResponse> {
   return request('/auth/register', { method: 'POST', body: input });
 }
@@ -95,6 +114,13 @@ export async function getDistanceSummary(
   const response = await request<{ summary: DistanceSummary }>(`/analytics/distance?${params.toString()}`, { token });
 
   return response.summary;
+}
+
+export async function askAnalyticsQuestion(
+  token: string,
+  input: { question: string; selectedOption?: { intents: AnalyticsIntentPayload[] } }
+): Promise<AnalyticsQueryResponse> {
+  return request('/analytics/query', { method: 'POST', token, body: input });
 }
 
 async function request<T>(
