@@ -368,7 +368,12 @@ export class AnalyticsRepository {
     };
   }
 
-  async getWorkoutTypeBreakdown(input: { userId: string; startDate: string; endDate: string }): Promise<WorkoutTypeBreakdown> {
+  async getWorkoutTypeBreakdown(input: {
+    userId: string;
+    startDate: string;
+    endDate: string;
+    workoutKind?: string;
+  }): Promise<WorkoutTypeBreakdown> {
     const result = await this.pool.query<{
       workout_kind: string | null;
       run_count: string;
@@ -381,10 +386,10 @@ export class AnalyticsRepository {
         coalesce(sum(distance_meters), 0) as total_distance_meters,
         coalesce(sum(duration_seconds), 0) as total_duration_seconds
       from runs
-      where user_id = $1 and occurred_on >= $2 and occurred_on <= $3
+      where user_id = $1 and occurred_on >= $2 and occurred_on <= $3 and ($4::text is null or workout_kind = $4)
       group by workout_kind
       order by workout_kind nulls last`,
-      [input.userId, input.startDate, input.endDate]
+      [input.userId, input.startDate, input.endDate, input.workoutKind ?? null]
     );
 
     return {
@@ -399,13 +404,19 @@ export class AnalyticsRepository {
     };
   }
 
-  async getWorkoutSummary(input: { userId: string; startDate: string; endDate: string }): Promise<WorkoutSummary> {
+  async getWorkoutSummary(input: {
+    userId: string;
+    startDate: string;
+    endDate: string;
+    workoutKind?: string;
+  }): Promise<WorkoutSummary> {
+    const workoutKind = input.workoutKind ?? 'workout';
     const result = await this.pool.query<RunWithWorkoutRow>(
       `select id, occurred_on, title, distance_meters, duration_seconds, workout_structure, perceived_effort
       from runs
-      where user_id = $1 and occurred_on >= $2 and occurred_on <= $3
+      where user_id = $1 and occurred_on >= $2 and occurred_on <= $3 and workout_kind = $4
       order by occurred_on desc, created_at desc`,
-      [input.userId, input.startDate, input.endDate]
+      [input.userId, input.startDate, input.endDate, workoutKind]
     );
 
     return {

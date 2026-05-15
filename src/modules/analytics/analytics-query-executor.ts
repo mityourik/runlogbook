@@ -9,7 +9,10 @@ export type AnalyticsQueryResult = {
 type AnalyticsRepositoryLike = Partial<AnalyticsRepository>;
 
 export class AnalyticsQueryExecutor {
-  constructor(private readonly repository: AnalyticsRepositoryLike) {}
+  constructor(
+    private readonly repository: AnalyticsRepositoryLike,
+    private readonly config: { now?: () => Date } = {}
+  ) {}
 
   async execute(input: { userId: string; intents: ClassifiedAnalyticsIntent[] }): Promise<AnalyticsQueryResult[]> {
     const results: AnalyticsQueryResult[] = [];
@@ -20,14 +23,15 @@ export class AnalyticsQueryExecutor {
 
       if (intent.name === 'weekly_summary') {
         const weekStart = intent.parameters.weekStart ?? startDate;
+        const weekEnd = endDate ?? (weekStart ? addUtcDays(weekStart, 6) : undefined);
 
-        if (!weekStart || !endDate) {
-          throw new Error('Intent weekly_summary requires weekStart and endDate');
+        if (!weekStart || !weekEnd) {
+          throw new Error('Intent weekly_summary requires weekStart');
         }
 
         results.push({
           intent: intent.name,
-          data: await this.require('getWeeklySummary')({ userId: input.userId, weekStart, weekEnd: endDate })
+          data: await this.require('getWeeklySummary')({ userId: input.userId, weekStart, weekEnd })
         });
         continue;
       }
@@ -35,7 +39,10 @@ export class AnalyticsQueryExecutor {
       if (intent.name === 'plan_adherence') {
         results.push({
           intent: intent.name,
-          data: await this.require('getCurrentPlanAdherence')(input.userId, new Date().toISOString().slice(0, 10))
+          data: await this.require('getCurrentPlanAdherence')(
+            input.userId,
+            endDate ?? (this.config.now?.() ?? new Date()).toISOString().slice(0, 10)
+          )
         });
         continue;
       }
@@ -61,9 +68,15 @@ export class AnalyticsQueryExecutor {
       } else if (intent.name === 'planned_vs_actual') {
         results.push({ intent: intent.name, data: await this.require('getPlannedVsActual')(periodInput) });
       } else if (intent.name === 'workout_type_breakdown') {
-        results.push({ intent: intent.name, data: await this.require('getWorkoutTypeBreakdown')(periodInput) });
+        results.push({
+          intent: intent.name,
+          data: await this.require('getWorkoutTypeBreakdown')({ ...periodInput, workoutKind: intent.parameters.workoutKind })
+        });
       } else if (intent.name === 'workout_summary') {
-        results.push({ intent: intent.name, data: await this.require('getWorkoutSummary')(periodInput) });
+        results.push({
+          intent: intent.name,
+          data: await this.require('getWorkoutSummary')({ ...periodInput, workoutKind: intent.parameters.workoutKind ?? 'workout' })
+        });
       } else if (intent.name === 'lap_summary') {
         results.push({
           intent: intent.name,
@@ -86,4 +99,11 @@ export class AnalyticsQueryExecutor {
 
     return method.bind(this.repository) as (...args: any[]) => Promise<any>;
   }
+}
+
+function addUtcDays(dateValue: string, days: number): string {
+  const date = new Date(`${dateValue}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+
+  return date.toISOString().slice(0, 10);
 }
