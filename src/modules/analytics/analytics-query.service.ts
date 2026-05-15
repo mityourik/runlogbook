@@ -39,14 +39,20 @@ export class AnalyticsQueryService {
     }
 
     if (this.llmClassifier.isConfigured()) {
+      let resolvedIntents: ClassifiedAnalyticsIntent[] | null = null;
+
       try {
         const llmClassification = await this.llmClassifier.classify(input.question);
 
         if (llmClassification.intents.every((intent) => intent.confidence >= 0.7)) {
-          return this.answer(input.userId, input.question, llmClassification.intents, 'llm');
+          resolvedIntents = this.resolveIntents(llmClassification.intents);
         }
       } catch {
         // Fall through to deterministic clarification options when LLM classification is unavailable.
+      }
+
+      if (resolvedIntents) {
+        return this.answerResolved(input.userId, input.question, resolvedIntents, 'llm');
       }
     }
 
@@ -59,7 +65,21 @@ export class AnalyticsQueryService {
     intents: ClassifiedAnalyticsIntent[],
     source: 'rules' | 'llm' | 'user_selection'
   ): Promise<AnalyticsQueryResponse> {
-    const resolvedIntents = intents.map((intent) => this.resolveIntent(intent));
+    const resolvedIntents = this.resolveIntents(intents);
+
+    return this.answerResolved(userId, question, resolvedIntents, source);
+  }
+
+  private resolveIntents(intents: ClassifiedAnalyticsIntent[]): ClassifiedAnalyticsIntent[] {
+    return intents.map((intent) => this.resolveIntent(intent));
+  }
+
+  private async answerResolved(
+    userId: string,
+    question: string,
+    resolvedIntents: ClassifiedAnalyticsIntent[],
+    source: 'rules' | 'llm' | 'user_selection'
+  ): Promise<AnalyticsQueryResponse> {
     const results = await this.executor.execute({ userId, intents: resolvedIntents });
 
     return { status: 'answered', question, resolved: { source, intents: resolvedIntents }, results };
@@ -80,11 +100,10 @@ export class AnalyticsQueryService {
         this.now()
       );
       const weekStart = intent.parameters.weekStart ?? resolved.startDate;
-      const weekPeriod = resolveAnalyticsPeriod({ startDate: weekStart, endDate: weekStart }, this.now());
 
       return {
         ...intent,
-        parameters: { ...intent.parameters, weekStart, startDate: weekPeriod.startDate, endDate: addUtcDays(weekPeriod.startDate, 6) }
+        parameters: { ...intent.parameters, weekStart }
       };
     }
 
@@ -96,13 +115,6 @@ export class AnalyticsQueryService {
   private now(): Date {
     return this.config.now?.() ?? new Date();
   }
-}
-
-function addUtcDays(dateValue: string, days: number): string {
-  const date = new Date(`${dateValue}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-
-  return date.toISOString().slice(0, 10);
 }
 
 function hasPeriodInput(parameters: ClassifiedAnalyticsIntent['parameters']): boolean {

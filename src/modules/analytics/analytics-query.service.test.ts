@@ -131,4 +131,71 @@ describe('AnalyticsQueryService', () => {
       ]
     });
   });
+
+  it('returns clarification when LLM returns an incomplete explicit date range', async () => {
+    const service = new AnalyticsQueryService(
+      {
+        execute: async () => {
+          throw new Error('executor should not be called for unresolved LLM intents');
+        }
+      },
+      {
+        isConfigured: () => true,
+        classify: async () => ({
+          source: 'llm',
+          intents: [{ name: 'distance_summary', parameters: { startDate: '2026-05-01' }, confidence: 0.9 }]
+        })
+      },
+      { now: () => new Date('2026-05-15T12:00:00.000Z') }
+    );
+
+    const response = await service.query({ userId: 'user-1', question: 'объем с первого мая' });
+
+    assert.equal(response.status, 'needs_clarification');
+    assert.equal(response.question, 'объем с первого мая');
+  });
+
+  it('does not swallow executor failures after successful LLM resolution', async () => {
+    const service = new AnalyticsQueryService(
+      {
+        execute: async () => {
+          throw new Error('repository unavailable');
+        }
+      },
+      {
+        isConfigured: () => true,
+        classify: async () => ({
+          source: 'llm',
+          intents: [{ name: 'distance_summary', parameters: { period: 'this_week' }, confidence: 0.9 }]
+        })
+      },
+      { now: () => new Date('2026-05-15T12:00:00.000Z') }
+    );
+
+    await assert.rejects(
+      () => service.query({ userId: 'user-1', question: 'мой беговой объем' }),
+      /repository unavailable/
+    );
+  });
+
+  it('resolves weekly summary selected options to weekStart only', async () => {
+    const service = new AnalyticsQueryService(
+      {
+        execute: async () => [{ intent: 'weekly_summary', data: { weekStart: '2026-05-11', weekEnd: '2026-05-17' } }]
+      },
+      { isConfigured: () => false, classify: async () => ({ source: 'llm', intents: [] }) },
+      { now: () => new Date('2026-05-15T12:00:00.000Z') }
+    );
+
+    const response = await service.query({
+      userId: 'user-1',
+      question: 'итоги недели',
+      selectedOption: { intents: [{ name: 'weekly_summary', parameters: {}, confidence: 1 }] }
+    });
+
+    assert.equal(response.status, 'answered');
+    assert.deepEqual(response.resolved.intents, [
+      { name: 'weekly_summary', parameters: { weekStart: '2026-05-11' }, confidence: 1 }
+    ]);
+  });
 });
