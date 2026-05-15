@@ -320,7 +320,7 @@ function AnalyticsQueryPanel(props: {
         <p className="muted">Например: “сколько я пробежал за последние сутки”, “что за 5 дней”, “покажи за неделю”, “с 01.05.2026 по 14.05.2026”.</p>
       </div>
       <form className="query-form" onSubmit={props.onSubmit}>
-        <input value={props.query} onChange={(event) => props.onQueryChange(event.target.value)} />
+        <input value={props.query} disabled={props.isLoading} onChange={(event) => props.onQueryChange(event.target.value)} />
         <button className="primary-button" disabled={props.isLoading}>
           {props.isLoading ? 'Считаю...' : 'Выполнить'}
         </button>
