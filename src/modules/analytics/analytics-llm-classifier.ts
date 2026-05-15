@@ -17,6 +17,7 @@ export class LlmAnalyticsClassifier {
       endpoint?: string;
       apiKey?: string;
       model: string;
+      timeoutMs?: number;
       fetch?: FetchLike;
     }
   ) {
@@ -32,8 +33,11 @@ export class LlmAnalyticsClassifier {
       throw new Error('Analytics LLM is not configured');
     }
 
+    const signal = AbortSignal.timeout(this.config.timeoutMs ?? 10000);
+
     const response = await this.fetchImpl(this.config.endpoint, {
       method: 'POST',
+      signal,
       headers: {
         authorization: `Bearer ${this.config.apiKey}`,
         'content-type': 'application/json'
@@ -68,7 +72,15 @@ export class LlmAnalyticsClassifier {
       throw new Error('Analytics LLM returned no content');
     }
 
-    const parsed = z.object({ intents: classifiedAnalyticsIntentsSchema }).strict().parse(JSON.parse(content));
+    let parsedContent: unknown;
+
+    try {
+      parsedContent = JSON.parse(content);
+    } catch {
+      throw new Error('Analytics LLM returned invalid JSON');
+    }
+
+    const parsed = z.object({ intents: classifiedAnalyticsIntentsSchema }).strict().parse(parsedContent);
 
     return { source: 'llm', intents: parsed.intents };
   }

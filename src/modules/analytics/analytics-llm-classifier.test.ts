@@ -45,4 +45,41 @@ describe('LlmAnalyticsClassifier', () => {
 
     await assert.rejects(() => classifier.classify('drop table runs'), /Invalid enum value|Invalid option/);
   });
+
+  it('rejects malformed JSON with a stable adapter error', async () => {
+    const classifier = new LlmAnalyticsClassifier({
+      endpoint: 'https://llm.example.test/v1/chat/completions',
+      apiKey: 'test-key',
+      model: 'test-model',
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            choices: [{ message: { content: '{not json' } }]
+          })
+        )
+    });
+
+    await assert.rejects(() => classifier.classify('broken output'), /invalid JSON/);
+  });
+
+  it('passes an abort signal to fetch', async () => {
+    let signal: unknown;
+    const classifier = new LlmAnalyticsClassifier({
+      endpoint: 'https://llm.example.test/v1/chat/completions',
+      apiKey: 'test-key',
+      model: 'test-model',
+      fetch: async (_url, init) => {
+        signal = init?.signal;
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { content: JSON.stringify({ intents: [{ name: 'distance_summary', parameters: {}, confidence: 1 }] }) } }]
+          })
+        );
+      }
+    });
+
+    await classifier.classify('сколько я пробежал');
+
+    assert.ok(signal instanceof AbortSignal);
+  });
 });
