@@ -117,13 +117,41 @@ export const analyticsIntentCatalog: AnalyticsIntentCatalogEntry[] = [
   }
 ];
 
+const allowedParameterKeysByIntent = {
+  distance_summary: ['period', 'startDate', 'endDate'],
+  run_count_summary: ['period', 'startDate', 'endDate'],
+  duration_summary: ['period', 'startDate', 'endDate'],
+  pace_summary: ['period', 'startDate', 'endDate'],
+  weekly_summary: ['weekStart'],
+  longest_run: ['period', 'startDate', 'endDate'],
+  effort_summary: ['period', 'startDate', 'endDate'],
+  plan_adherence: ['period'],
+  planned_vs_actual: ['period', 'startDate', 'endDate'],
+  workout_type_breakdown: ['period', 'startDate', 'endDate', 'workoutKind'],
+  workout_summary: ['period', 'startDate', 'endDate', 'workoutKind', 'runId'],
+  lap_summary: ['period', 'startDate', 'endDate', 'runId']
+} satisfies Record<AnalyticsIntentName, Array<keyof z.infer<typeof analyticsIntentParametersSchema>>>;
+
 export const classifiedAnalyticsIntentSchema = z
   .object({
     name: z.enum(analyticsIntentNames),
     parameters: analyticsIntentParametersSchema.default({}),
     confidence: z.number().min(0).max(1).default(1)
   })
-  .strict();
+  .strict()
+  .superRefine((intent, context) => {
+    const allowedKeys = new Set(allowedParameterKeysByIntent[intent.name]);
+
+    for (const parameterKey of Object.keys(intent.parameters)) {
+      if (!allowedKeys.has(parameterKey as keyof typeof intent.parameters)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['parameters', parameterKey],
+          message: `${parameterKey} is not allowed for ${intent.name}`
+        });
+      }
+    }
+  });
 
 export type ClassifiedAnalyticsIntent = z.infer<typeof classifiedAnalyticsIntentSchema>;
 

@@ -39,4 +39,20 @@ describe('analytics intents', () => {
       /Invalid enum value/
     );
   });
+
+  it('rejects parameters that are not allowed for the classified intent', () => {
+    assert.throws(() =>
+      classifiedAnalyticsIntentSchema.parse({
+        name: 'distance_summary',
+        parameters: { runId: '00000000-0000-4000-8000-000000000000' }
+      })
+    );
+
+    assert.throws(() =>
+      classifiedAnalyticsIntentSchema.parse({
+        name: 'weekly_summary',
+        parameters: { runId: '00000000-0000-4000-8000-000000000000' }
+      })
+    );
+  });
 });
