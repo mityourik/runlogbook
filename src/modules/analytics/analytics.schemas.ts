@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import { classifiedAnalyticsIntentsSchema } from './analytics-intents.js';
+import { isValidAnalyticsDate } from './analytics-periods.js';
+
+const isoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected date in YYYY-MM-DD format')
+  .refine(isValidAnalyticsDate, 'Expected real date in YYYY-MM-DD format');
 
 export const weeklySummaryQuerySchema = z.object({
-  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected date in YYYY-MM-DD format').optional()
+  weekStart: isoDateSchema.optional()
 });
-
-const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected date in YYYY-MM-DD format');
 
 const selectedOptionSchema = z
   .object({

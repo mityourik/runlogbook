@@ -1,6 +1,22 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { analyticsQueryRequestSchema } from './analytics.schemas.js';
+import { analyticsQueryRequestSchema, distanceSummaryQuerySchema, weeklySummaryQuerySchema } from './analytics.schemas.js';
+
+describe('analytics route query schemas', () => {
+  it('rejects invalid weekly summary weekStart calendar dates', () => {
+    assert.throws(
+      () => weeklySummaryQuerySchema.parse({ weekStart: '2026-02-31' }),
+      /Expected real date in YYYY-MM-DD format/
+    );
+  });
+
+  it('rejects invalid distance summary calendar dates', () => {
+    assert.throws(
+      () => distanceSummaryQuerySchema.parse({ startDate: '2026-02-31', endDate: '2026-03-01' }),
+      /Expected real date in YYYY-MM-DD format/
+    );
+  });
+});
 
 describe('analyticsQueryRequestSchema', () => {
   it('rejects selected options with only startDate', () => {
