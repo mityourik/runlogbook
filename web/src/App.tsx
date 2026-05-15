@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
+  askAnalyticsQuestion,
   clarifyDraftRun,
-  getDistanceSummary,
   getStravaConnectUrl,
   listDraftRuns,
   login,
   register,
-  type DistanceSummary,
+  type AnalyticsIntentPayload,
+  type AnalyticsQueryResponse,
   type DraftRun
 } from './api.js';
 
@@ -52,7 +53,7 @@ export function App() {
   const [step, setStep] = useState<Step>('effort');
   const [textValue, setTextValue] = useState('');
   const [analyticsQuery, setAnalyticsQuery] = useState('дай мне километраж за неделю');
-  const [distanceSummary, setDistanceSummary] = useState<DistanceSummary | null>(null);
+  const [analyticsResponse, setAnalyticsResponse] = useState<AnalyticsQueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
@@ -165,17 +166,34 @@ export function App() {
       return;
     }
 
-    const period = parseAnalyticsPeriod(analyticsQuery);
+    setIsAnalyticsLoading(true);
+    setError(null);
+    try {
+      setAnalyticsResponse(await askAnalyticsQuestion(token, { question: analyticsQuery }));
+    } catch (caught) {
+      setError(readError(caught));
+    } finally {
+      setIsAnalyticsLoading(false);
+    }
+  }
 
-    if (!period) {
-      setError('Укажи период: например “за 5 дней”, “за неделю” или “с 01.05.2026 по 14.05.2026”.');
+  function changeAnalyticsQuery(value: string) {
+    setAnalyticsQuery(value);
+    setAnalyticsResponse(null);
+  }
+
+  async function chooseAnalyticsOption(option: { intents: AnalyticsIntentPayload[] }) {
+    if (!token || !analyticsResponse || analyticsResponse.status !== 'needs_clarification') {
       return;
     }
 
     setIsAnalyticsLoading(true);
     setError(null);
     try {
-      setDistanceSummary(await getDistanceSummary(token, period));
+      setAnalyticsResponse(await askAnalyticsQuestion(token, {
+        question: analyticsResponse.question,
+        selectedOption: { intents: option.intents }
+      }));
     } catch (caught) {
       setError(readError(caught));
     } finally {
@@ -244,10 +262,11 @@ export function App() {
       {appMode === 'analytics' ? (
         <AnalyticsQueryPanel
           query={analyticsQuery}
-          summary={distanceSummary}
+          response={analyticsResponse}
           isLoading={isAnalyticsLoading}
-          onQueryChange={setAnalyticsQuery}
+          onQueryChange={changeAnalyticsQuery}
           onSubmit={submitAnalyticsQuery}
+          onChooseOption={chooseAnalyticsOption}
         />
       ) : null}
 
@@ -287,109 +306,83 @@ export function App() {
 
 function AnalyticsQueryPanel(props: {
   query: string;
-  summary: DistanceSummary | null;
+  response: AnalyticsQueryResponse | null;
   isLoading: boolean;
   onQueryChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onChooseOption: (option: { intents: AnalyticsIntentPayload[] }) => void;
 }) {
   return (
     <section className="analytics-card">
       <div>
         <p className="eyebrow">Analytics</p>
         <h2>Задай вопрос</h2>
-        <p className="muted">Например: “сколько я пробежал за последние сутки”, “что за 5 дней”, “покажи за неделю”, “с 01.05.2026 по 14.05.2026”.</p>
+        <p className="muted">Например: “сколько я пробежал за неделю”, “какой темп за последние 30 дней”, “как я выполняю план”, “разбивка тренировок по типам за месяц”.</p>
       </div>
       <form className="query-form" onSubmit={props.onSubmit}>
-        <input value={props.query} onChange={(event) => props.onQueryChange(event.target.value)} />
+        <input value={props.query} disabled={props.isLoading} onChange={(event) => props.onQueryChange(event.target.value)} />
         <button className="primary-button" disabled={props.isLoading}>
           {props.isLoading ? 'Считаю...' : 'Выполнить'}
         </button>
       </form>
 
-      {props.summary ? (
+      {props.response?.status === 'needs_clarification' ? (
+        <div className="analytics-result">
+          <div className="answer-card">
+            <span>Уточни вопрос</span>
+            <strong>{props.response.question}</strong>
+          </div>
+          <div className="choice-row">
+            {props.response.options.map((option) => (
+              <button
+                key={option.label}
+                className="secondary-button"
+                type="button"
+                disabled={props.isLoading}
+                onClick={() => props.onChooseOption(option)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {props.response?.status === 'answered' ? (
         <div className="analytics-result">
           <div className="answer-card">
             <span>Ответ</span>
-            <strong>{formatAnalyticsAnswer(props.summary)}</strong>
+            <strong>{props.response.question}</strong>
           </div>
-
-          <div className="metric-grid">
-            <Metric label="Километраж" value={`${props.summary.totalDistanceKm.toFixed(2)} км`} />
-            <Metric label="Тренировок" value={String(props.summary.runCount)} />
-            <Metric label="Период" value={`${formatDisplayDate(props.summary.startDate)} - ${formatDisplayDate(props.summary.endDate)}`} />
-          </div>
-
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Дата</th>
-                  <th>Тренировка</th>
-                  <th>Км</th>
-                  <th>Время</th>
-                </tr>
-              </thead>
-              <tbody>
-                {props.summary.runs.length > 0 ? (
-                  props.summary.runs.map((run) => (
-                    <tr key={run.id}>
-                      <td>{formatDisplayDate(run.occurredOn)}</td>
-                      <td>{run.title ?? 'Run'}</td>
-                      <td>{run.distanceKm.toFixed(2)}</td>
-                      <td>{formatDuration(run.durationSeconds)}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4}>За этот период сохраненных тренировок нет.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {props.response.results.map((result, index) => (
+            <div className="answer-card" key={`${result.intent}-${index}`}>
+              <span>{formatIntentLabel(result.intent)}</span>
+              <pre>{JSON.stringify(result.data, null, 2)}</pre>
+            </div>
+          ))}
         </div>
       ) : null}
     </section>
   );
 }
 
-function Metric(props: { label: string; value: string }) {
-  return (
-    <div className="metric-card">
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
-    </div>
-  );
-}
+function formatIntentLabel(intent: string): string {
+  const labels: Record<string, string> = {
+    distance_summary: 'Километраж',
+    run_count_summary: 'Количество пробежек',
+    duration_summary: 'Время бега',
+    pace_summary: 'Темп',
+    weekly_summary: 'Недельная сводка',
+    longest_run: 'Самая длинная пробежка',
+    effort_summary: 'Нагрузка',
+    plan_adherence: 'Выполнение плана',
+    planned_vs_actual: 'План и факт',
+    workout_type_breakdown: 'Разбивка по типам',
+    workout_summary: 'Сводка по тренировкам',
+    lap_summary: 'Круги и сплиты'
+  };
 
-function formatAnalyticsAnswer(summary: DistanceSummary): string {
-  const period = `${formatDisplayDate(summary.startDate)} - ${formatDisplayDate(summary.endDate)}`;
-  const runWord = getRunWord(summary.runCount);
-
-  if (summary.runCount === 0) {
-    return `За период ${period} сохраненных тренировок нет.`;
-  }
-
-  return `За период ${period} ты пробежал ${summary.totalDistanceKm.toFixed(2)} км: ${summary.runCount} ${runWord}.`;
-}
-
-function getRunWord(count: number): string {
-  const lastTwoDigits = count % 100;
-  const lastDigit = count % 10;
-
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
-    return 'тренировок';
-  }
-
-  if (lastDigit === 1) {
-    return 'тренировка';
-  }
-
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return 'тренировки';
-  }
-
-  return 'тренировок';
+  return labels[intent] ?? intent;
 }
 
 function ClarificationCard(props: {
@@ -757,51 +750,6 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-function parseAnalyticsPeriod(query: string): { startDate: string; endDate: string } | null {
-  const normalized = query.toLowerCase().replace(/ё/g, 'е');
-  const explicitDates = normalized.match(/\d{2}\.\d{2}\.\d{4}|\d{4}-\d{2}-\d{2}/g);
-
-  if (explicitDates && explicitDates.length >= 2) {
-    return { startDate: toApiDate(explicitDates[0]), endDate: toApiDate(explicitDates[1]) };
-  }
-
-  const today = new Date();
-  const numberMatch = normalized.match(/(?:за|последн(?:ие|их|ий|юю)?)\s+(\d+)\s*(день|дня|дней|сутки|суток|недел[юияь]*)/u);
-
-  if (numberMatch) {
-    const amount = Number(numberMatch[1]);
-    const unit = numberMatch[2];
-    const days = unit.startsWith('недел') ? amount * 7 : amount;
-
-    return getLastDaysPeriod(today, days);
-  }
-
-  if (/сут(ки|ок)|24\s*час/.test(normalized)) {
-    return getLastDaysPeriod(today, 1);
-  }
-
-  if (/недел/.test(normalized)) {
-    return getLastDaysPeriod(today, 7);
-  }
-
-  if (/месяц/.test(normalized)) {
-    return getLastDaysPeriod(today, 30);
-  }
-
-  return null;
-}
-
-function getLastDaysPeriod(today: Date, days: number): { startDate: string; endDate: string } {
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - Math.max(days - 1, 0));
-
-  return { startDate: toIsoDate(startDate), endDate: toIsoDate(today) };
-}
-
-function toIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 function formatDisplayDate(value: string): string {
   const datePart = value.slice(0, 10);
   const [year, month, day] = datePart.split('-');
@@ -811,16 +759,6 @@ function formatDisplayDate(value: string): string {
   }
 
   return `${day}.${month}.${year}`;
-}
-
-function toApiDate(value: string): string {
-  if (/^\d{2}\.\d{2}\.\d{4}$/.test(value)) {
-    const [day, month, year] = value.split('.');
-
-    return `${year}-${month}-${day}`;
-  }
-
-  return value;
 }
 
 function readError(caught: unknown): string {

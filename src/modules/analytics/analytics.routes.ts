@@ -1,10 +1,21 @@
 import type { FastifyInstance } from 'fastify';
+import { env } from '../../shared/config/env.js';
 import { authenticateRequest } from '../identity/auth.js';
+import { LlmAnalyticsClassifier } from './analytics-llm-classifier.js';
+import { AnalyticsQueryExecutor } from './analytics-query-executor.js';
+import { AnalyticsQueryService } from './analytics-query.service.js';
 import { AnalyticsRepository } from './analytics.repository.js';
-import { distanceSummaryQuerySchema, weeklySummaryQuerySchema } from './analytics.schemas.js';
+import { analyticsQueryRequestSchema, distanceSummaryQuerySchema, weeklySummaryQuerySchema } from './analytics.schemas.js';
 
 export function registerAnalyticsRoutes(app: FastifyInstance): void {
   const analytics = new AnalyticsRepository(app.dependencies.pool);
+  const executor = new AnalyticsQueryExecutor(analytics);
+  const llmClassifier = new LlmAnalyticsClassifier({
+    endpoint: env.ANALYTICS_LLM_ENDPOINT,
+    apiKey: env.ANALYTICS_LLM_API_KEY,
+    model: env.ANALYTICS_LLM_MODEL
+  });
+  const queryService = new AnalyticsQueryService(executor, llmClassifier);
 
   app.addHook('preHandler', async (request) => {
     if (!request.url.startsWith('/analytics')) {
@@ -18,6 +29,12 @@ export function registerAnalyticsRoutes(app: FastifyInstance): void {
     }
 
     request.user = user;
+  });
+
+  app.post('/analytics/query', async (request) => {
+    const input = analyticsQueryRequestSchema.parse(request.body);
+
+    return queryService.query({ userId: request.user!.id, ...input });
   });
 
   app.get('/analytics/weekly-summary', async (request) => {

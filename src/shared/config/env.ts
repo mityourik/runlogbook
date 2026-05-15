@@ -9,7 +9,10 @@ const envSchema = z.object({
   APP_SECRET: z.string().min(32).default('development-secret-change-before-prod'),
   STRAVA_CLIENT_ID: z.string().optional(),
   STRAVA_CLIENT_SECRET: z.string().optional(),
-  STRAVA_WEBHOOK_VERIFY_TOKEN: z.string().default('development-strava-webhook-token')
+  STRAVA_WEBHOOK_VERIFY_TOKEN: z.string().default('development-strava-webhook-token'),
+  ANALYTICS_LLM_ENDPOINT: z.string().url().optional(),
+  ANALYTICS_LLM_API_KEY: z.string().optional(),
+  ANALYTICS_LLM_MODEL: z.string().default('gpt-4o-mini')
 });
 
 export const env = envSchema.parse(process.env);
