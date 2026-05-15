@@ -41,11 +41,14 @@ export class AnalyticsQueryExecutor {
       }
 
       if (intent.name === 'plan_adherence') {
+        const range = startDate && endDate ? { startDate, endDate } : undefined;
+
         results.push({
           intent: intent.name,
           data: await this.require('getCurrentPlanAdherence')(
             input.userId,
-            endDate ?? (this.config.now?.() ?? new Date()).toISOString().slice(0, 10)
+            endDate ?? (this.config.now?.() ?? new Date()).toISOString().slice(0, 10),
+            range
           )
         });
         continue;

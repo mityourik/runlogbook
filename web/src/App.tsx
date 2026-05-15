@@ -317,7 +317,7 @@ function AnalyticsQueryPanel(props: {
       <div>
         <p className="eyebrow">Analytics</p>
         <h2>Задай вопрос</h2>
-        <p className="muted">Например: “сколько я пробежал за последние сутки”, “что за 5 дней”, “покажи за неделю”, “с 01.05.2026 по 14.05.2026”.</p>
+        <p className="muted">Например: “сколько я пробежал за неделю”, “какой темп за последние 30 дней”, “как я выполняю план”, “разбивка тренировок по типам за месяц”.</p>
       </div>
       <form className="query-form" onSubmit={props.onSubmit}>
         <input value={props.query} disabled={props.isLoading} onChange={(event) => props.onQueryChange(event.target.value)} />

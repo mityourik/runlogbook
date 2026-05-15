@@ -159,7 +159,11 @@ export class AnalyticsRepository {
     };
   }
 
-  async getCurrentPlanAdherence(userId: string, onDate: string): Promise<PlanAdherence> {
+  async getCurrentPlanAdherence(
+    userId: string,
+    onDate: string,
+    range?: { startDate: string; endDate: string }
+  ): Promise<PlanAdherence> {
     const planResult = await this.pool.query<{ id: string }>(
       `select id
       from training_plans
@@ -183,6 +187,14 @@ export class AnalyticsRepository {
       };
     }
 
+    const plannedWorkoutWhere = ['training_plan_id = $1'];
+    const plannedWorkoutValues = [planId];
+
+    if (range) {
+      plannedWorkoutWhere.push('scheduled_on >= $2', 'scheduled_on <= $3');
+      plannedWorkoutValues.push(range.startDate, range.endDate);
+    }
+
     const result = await this.pool.query<PlanAdherenceRow>(
       `select
         count(*) as planned_count,
@@ -190,8 +202,8 @@ export class AnalyticsRepository {
         count(*) filter (where status = 'changed') as changed_count,
         count(*) filter (where status = 'skipped') as skipped_count
       from planned_workouts
-      where training_plan_id = $1`,
-      [planId]
+      where ${plannedWorkoutWhere.join(' and ')}`,
+      plannedWorkoutValues
     );
     const row = result.rows[0];
     const plannedCount = Number(row.planned_count);

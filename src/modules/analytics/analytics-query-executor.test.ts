@@ -123,6 +123,33 @@ describe('AnalyticsQueryExecutor', () => {
     assert.deepEqual(dates, ['2026-05-12']);
   });
 
+  it('passes resolved plan adherence range when startDate and endDate are provided', async () => {
+    let receivedArguments: unknown[] = [];
+    const executor = new AnalyticsQueryExecutor({
+      getCurrentPlanAdherence: async (...args) => {
+        receivedArguments = args;
+        return { planId: null, plannedCount: 0, completedCount: 0, changedCount: 0, skippedCount: 0, adherencePercent: null };
+      }
+    });
+
+    await executor.execute({
+      userId: 'user-1',
+      intents: [
+        {
+          name: 'plan_adherence',
+          parameters: { startDate: '2026-05-01', endDate: '2026-05-31' },
+          confidence: 1
+        }
+      ]
+    });
+
+    assert.deepEqual(receivedArguments, [
+      'user-1',
+      '2026-05-31',
+      { startDate: '2026-05-01', endDate: '2026-05-31' }
+    ]);
+  });
+
   it('throws when a period intent is missing startDate and endDate', async () => {
     const executor = new AnalyticsQueryExecutor({});
 
