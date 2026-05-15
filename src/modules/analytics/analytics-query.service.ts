@@ -8,11 +8,11 @@ import { classifyAnalyticsQuestionWithRules } from './analytics-rule-classifier.
 export type AnalyticsQueryResponse =
   | {
       status: 'answered';
-      source: 'rules' | 'llm' | 'user_selection';
-      intents: ClassifiedAnalyticsIntent[];
+      question: string;
+      resolved: { source: 'rules' | 'llm' | 'user_selection'; intents: ClassifiedAnalyticsIntent[] };
       results: AnalyticsQueryResult[];
     }
-  | { status: 'needs_clarification'; options: AnalyticsClarificationOption[] };
+  | { status: 'needs_clarification'; question: string; options: AnalyticsClarificationOption[] };
 
 type AnalyticsQueryInput = {
   userId: string;
@@ -29,13 +29,13 @@ export class AnalyticsQueryService {
 
   async query(input: AnalyticsQueryInput): Promise<AnalyticsQueryResponse> {
     if (input.selectedOption) {
-      return this.answer(input.userId, input.selectedOption.intents, 'user_selection');
+      return this.answer(input.userId, input.question, input.selectedOption.intents, 'user_selection');
     }
 
     const ruleClassification = classifyAnalyticsQuestionWithRules(input.question);
 
     if (ruleClassification) {
-      return this.answer(input.userId, ruleClassification.intents, 'rules');
+      return this.answer(input.userId, input.question, ruleClassification.intents, 'rules');
     }
 
     if (this.llmClassifier.isConfigured()) {
@@ -43,25 +43,26 @@ export class AnalyticsQueryService {
         const llmClassification = await this.llmClassifier.classify(input.question);
 
         if (llmClassification.intents.every((intent) => intent.confidence >= 0.7)) {
-          return this.answer(input.userId, llmClassification.intents, 'llm');
+          return this.answer(input.userId, input.question, llmClassification.intents, 'llm');
         }
       } catch {
         // Fall through to deterministic clarification options when LLM classification is unavailable.
       }
     }
 
-    return { status: 'needs_clarification', options: buildAnalyticsClarificationOptions(input.question) };
+    return { status: 'needs_clarification', question: input.question, options: buildAnalyticsClarificationOptions(input.question) };
   }
 
   private async answer(
     userId: string,
+    question: string,
     intents: ClassifiedAnalyticsIntent[],
     source: 'rules' | 'llm' | 'user_selection'
   ): Promise<AnalyticsQueryResponse> {
     const resolvedIntents = intents.map((intent) => this.resolveIntent(intent));
     const results = await this.executor.execute({ userId, intents: resolvedIntents });
 
-    return { status: 'answered', source, intents: resolvedIntents, results };
+    return { status: 'answered', question, resolved: { source, intents: resolvedIntents }, results };
   }
 
   private resolveIntent(intent: ClassifiedAnalyticsIntent): ClassifiedAnalyticsIntent {

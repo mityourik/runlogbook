@@ -43,14 +43,17 @@ describe('AnalyticsQueryService', () => {
     });
     assert.deepEqual(response, {
       status: 'answered',
-      source: 'rules',
-      intents: [
-        {
-          name: 'distance_summary',
-          parameters: { period: 'this_week', startDate: '2026-05-11', endDate: '2026-05-17' },
-          confidence: 0.95
-        }
-      ],
+      question: 'сколько я пробежал за неделю',
+      resolved: {
+        source: 'rules',
+        intents: [
+          {
+            name: 'distance_summary',
+            parameters: { period: 'this_week', startDate: '2026-05-11', endDate: '2026-05-17' },
+            confidence: 0.95
+          }
+        ]
+      },
       results: [{ intent: 'distance_summary', data: resultData }]
     });
   });
@@ -69,6 +72,7 @@ describe('AnalyticsQueryService', () => {
     const response = await service.query({ userId: 'user-1', question: 'как у меня с тренировками' });
 
     assert.equal(response.status, 'needs_clarification');
+    assert.equal(response.question, 'как у меня с тренировками');
     assert.equal(response.options.length, 3);
   });
 
