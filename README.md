@@ -153,6 +153,7 @@ Available endpoints:
 - `GET /analytics/weekly-summary`
 - `GET /analytics/plan-adherence`
 - `GET /analytics/distance`
+- `POST /analytics/query`
 - `POST /runs`
 - `GET /runs`
 - `GET /runs/{runId}`
