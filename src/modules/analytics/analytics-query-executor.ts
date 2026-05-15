@@ -75,7 +75,11 @@ export class AnalyticsQueryExecutor {
       } else if (intent.name === 'workout_summary') {
         results.push({
           intent: intent.name,
-          data: await this.require('getWorkoutSummary')({ ...periodInput, workoutKind: intent.parameters.workoutKind ?? 'workout' })
+          data: await this.require('getWorkoutSummary')({
+            ...periodInput,
+            workoutKind: intent.parameters.workoutKind ?? 'workout',
+            runId: intent.parameters.runId
+          })
         });
       } else if (intent.name === 'lap_summary') {
         results.push({

@@ -409,14 +409,15 @@ export class AnalyticsRepository {
     startDate: string;
     endDate: string;
     workoutKind?: string;
+    runId?: string;
   }): Promise<WorkoutSummary> {
     const workoutKind = input.workoutKind ?? 'workout';
     const result = await this.pool.query<RunWithWorkoutRow>(
       `select id, occurred_on, title, distance_meters, duration_seconds, workout_structure, perceived_effort
       from runs
-      where user_id = $1 and occurred_on >= $2 and occurred_on <= $3 and workout_kind = $4
+      where user_id = $1 and occurred_on >= $2 and occurred_on <= $3 and workout_kind = $4 and ($5::uuid is null or id = $5::uuid)
       order by occurred_on desc, created_at desc`,
-      [input.userId, input.startDate, input.endDate, workoutKind]
+      [input.userId, input.startDate, input.endDate, workoutKind, input.runId ?? null]
     );
 
     return {

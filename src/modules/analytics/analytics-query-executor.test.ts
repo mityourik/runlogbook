@@ -151,6 +151,39 @@ describe('AnalyticsQueryExecutor', () => {
     });
   });
 
+  it('passes runId and default workoutKind to workout summary', async () => {
+    let receivedInput: unknown;
+    const executor = new AnalyticsQueryExecutor({
+      getWorkoutSummary: async (input) => {
+        receivedInput = input;
+        return { startDate: input.startDate, endDate: input.endDate, runs: [] };
+      }
+    });
+
+    await executor.execute({
+      userId: 'user-1',
+      intents: [
+        {
+          name: 'workout_summary',
+          parameters: {
+            startDate: '2026-05-11',
+            endDate: '2026-05-17',
+            runId: '11111111-1111-4111-8111-111111111111'
+          },
+          confidence: 1
+        }
+      ]
+    });
+
+    assert.deepEqual(receivedInput, {
+      userId: 'user-1',
+      startDate: '2026-05-11',
+      endDate: '2026-05-17',
+      workoutKind: 'workout',
+      runId: '11111111-1111-4111-8111-111111111111'
+    });
+  });
+
   it('passes runId to lap summary', async () => {
     let receivedInput: unknown;
     const executor = new AnalyticsQueryExecutor({
