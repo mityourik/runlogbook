@@ -13,7 +13,7 @@ export function classifyAnalyticsQuestionWithRules(question: string): RuleClassi
   const period = detectPeriod(normalizedQuestion);
   const matches = detectIntents(normalizedQuestion);
 
-  if (matches.length === 0) {
+  if (matches.length === 0 || matches.length > 4) {
     return null;
   }
 

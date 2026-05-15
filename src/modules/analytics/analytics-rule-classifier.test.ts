@@ -25,4 +25,13 @@ describe('analytics rule classifier', () => {
   it('returns null for ambiguous workout status questions', () => {
     assert.equal(classifyAnalyticsQuestionWithRules('как у меня с тренировками'), null);
   });
+
+  it('returns null for broad questions matching more than four intent types', () => {
+    assert.equal(
+      classifyAnalyticsQuestionWithRules(
+        'километраж темп сколько пробежек сколько времени самая длинная за неделю'
+      ),
+      null
+    );
+  });
 });
