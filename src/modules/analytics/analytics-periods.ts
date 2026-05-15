@@ -1,12 +1,15 @@
-export type AnalyticsPeriod =
-  | 'today'
-  | 'yesterday'
-  | 'this_week'
-  | 'last_week'
-  | 'this_month'
-  | 'last_month'
-  | 'last_7_days'
-  | 'last_30_days';
+export const analyticsPeriods = [
+  'today',
+  'yesterday',
+  'this_week',
+  'last_week',
+  'this_month',
+  'last_month',
+  'last_7_days',
+  'last_30_days'
+] as const;
+
+export type AnalyticsPeriod = (typeof analyticsPeriods)[number];
 
 export type AnalyticsPeriodInput = {
   period?: AnalyticsPeriod;
