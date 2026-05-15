@@ -66,7 +66,11 @@ export class AnalyticsQueryService {
 
   private resolveIntent(intent: ClassifiedAnalyticsIntent): ClassifiedAnalyticsIntent {
     if (intent.name === 'plan_adherence') {
-      return intent;
+      const resolved = hasPeriodInput(intent.parameters)
+        ? resolveAnalyticsPeriod(intent.parameters, this.now())
+        : todayPeriod(this.now());
+
+      return { ...intent, parameters: { ...intent.parameters, ...resolved } };
     }
 
     if (intent.name === 'weekly_summary') {
@@ -98,4 +102,14 @@ function addUtcDays(dateValue: string, days: number): string {
   date.setUTCDate(date.getUTCDate() + days);
 
   return date.toISOString().slice(0, 10);
+}
+
+function hasPeriodInput(parameters: ClassifiedAnalyticsIntent['parameters']): boolean {
+  return parameters.period !== undefined || parameters.startDate !== undefined || parameters.endDate !== undefined;
+}
+
+function todayPeriod(now: Date): { startDate: string; endDate: string } {
+  const today = now.toISOString().slice(0, 10);
+
+  return { startDate: today, endDate: today };
 }

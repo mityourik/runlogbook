@@ -71,4 +71,60 @@ describe('AnalyticsQueryService', () => {
     assert.equal(response.status, 'needs_clarification');
     assert.equal(response.options.length, 3);
   });
+
+  it('resolves selected plan adherence without a period to the injected today', async () => {
+    let receivedInput: unknown;
+    const service = new AnalyticsQueryService(
+      {
+        execute: async (input) => {
+          receivedInput = input;
+          return [{ intent: 'plan_adherence', data: { adherencePercent: null } }];
+        }
+      },
+      { isConfigured: () => false, classify: async () => ({ source: 'llm', intents: [] }) },
+      { now: () => new Date('2026-05-15T12:00:00.000Z') }
+    );
+
+    await service.query({
+      userId: 'user-1',
+      question: 'выполнение плана',
+      selectedOption: { intents: [{ name: 'plan_adherence', parameters: {}, confidence: 1 }] }
+    });
+
+    assert.deepEqual(receivedInput, {
+      userId: 'user-1',
+      intents: [{ name: 'plan_adherence', parameters: { startDate: '2026-05-15', endDate: '2026-05-15' }, confidence: 1 }]
+    });
+  });
+
+  it('resolves selected plan adherence periods with the injected today', async () => {
+    let receivedInput: unknown;
+    const service = new AnalyticsQueryService(
+      {
+        execute: async (input) => {
+          receivedInput = input;
+          return [{ intent: 'plan_adherence', data: { adherencePercent: null } }];
+        }
+      },
+      { isConfigured: () => false, classify: async () => ({ source: 'llm', intents: [] }) },
+      { now: () => new Date('2026-05-15T12:00:00.000Z') }
+    );
+
+    await service.query({
+      userId: 'user-1',
+      question: 'выполнение плана за прошлую неделю',
+      selectedOption: { intents: [{ name: 'plan_adherence', parameters: { period: 'last_week' }, confidence: 1 }] }
+    });
+
+    assert.deepEqual(receivedInput, {
+      userId: 'user-1',
+      intents: [
+        {
+          name: 'plan_adherence',
+          parameters: { period: 'last_week', startDate: '2026-05-04', endDate: '2026-05-10' },
+          confidence: 1
+        }
+      ]
+    });
+  });
 });
