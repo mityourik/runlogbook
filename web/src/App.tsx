@@ -177,6 +177,11 @@ export function App() {
     }
   }
 
+  function changeAnalyticsQuery(value: string) {
+    setAnalyticsQuery(value);
+    setAnalyticsResponse(null);
+  }
+
   async function chooseAnalyticsOption(option: { intents: AnalyticsIntentPayload[] }) {
     if (!token || !analyticsResponse || analyticsResponse.status !== 'needs_clarification') {
       return;
@@ -259,7 +264,7 @@ export function App() {
           query={analyticsQuery}
           response={analyticsResponse}
           isLoading={isAnalyticsLoading}
-          onQueryChange={setAnalyticsQuery}
+          onQueryChange={changeAnalyticsQuery}
           onSubmit={submitAnalyticsQuery}
           onChooseOption={chooseAnalyticsOption}
         />
